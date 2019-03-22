@@ -9,8 +9,11 @@
 #include <QMessageBox>
 #include <QDateTime>
 
-#include "world.h"
 #include "ui_mainwindow.h"
+
+#include "world.h"
+#include "world2.h"
+#include "test.h"
 
 
 namespace Ui {
@@ -29,7 +32,12 @@ private:
     bool is_paused;
     bool is_fast;
     int lastFpsUpdate = QDateTime::currentMSecsSinceEpoch();
-    World world;
+    World2 world;
+
+    int targetFps = 8;
+    long long nextUpdate = 0;
+
+    //Test test;
 
 public:
     explicit MainWindow(QWidget *parent = 0) :
@@ -48,8 +56,7 @@ public:
         connect(ui->btn_start_pause, SIGNAL(pressed()), this, SLOT(init_game()));
         connect(ui->btn_fast, SIGNAL(pressed()), this, SLOT(toggle_fast()));
 
-        world = World();
-        world.scale = (double)ui->viewport->height() / world.ysize;
+        world.scale = int((double)ui->viewport->height() / world.ysize);
         world.cameraPosition.x = ((double)ui->viewport->width() / world.scale - world.xsize) / 2;
     }
 
@@ -85,44 +92,52 @@ public:
         painter.setClipRect(ui->viewport->rect());
 
         world.draw(painter);
+
+        //test.test(painter);
     }
 
     void timerEvent(QTimerEvent *event) {
         if (event->timerId() == timerId && !is_paused) {
             auto lTime = QDateTime::currentMSecsSinceEpoch();
             int ticksNow = 0;
-            while(QDateTime::currentMSecsSinceEpoch() < lTime + 1000 / 60 || ticksNow == 0) {
+            //while(QDateTime::currentMSecsSinceEpoch() < lTime + 1000 / targetFps/* || ticksNow == 0*/) {
+            while(QDateTime::currentMSecsSinceEpoch() >= nextUpdate || (is_fast && QDateTime::currentMSecsSinceEpoch() < lTime + 1000 / 60) ) {
                 // add random creature
-                if (ui->spawnCells->isChecked() && tick % 20 == 0 && world.countCreatures() < 20)
-                    world.addCreature(rand() % world.xsize, rand() % world.ysize, 800);
+
+                //if (ui->spawnCells->isChecked() && tick % 20 == 0 && world.countCreatures() < 40)
+                //    world.addCreature(rand() % world.xsize, rand() % world.ysize, 800);
+
                 // add meat
                 if(rand() % 25 < ui->foodSpawn->value()) {
-                    auto newCell = world.addCell(rand() % world.xsize, rand() % world.ysize, 200);
-                    newCell->color = Qt::green;
+                    //auto newCell = world.physics.addCell(rand() % world.xsize, rand() % world.ysize, 100);
+                    //auto newCell = world.physics.addCell(rand() % world.xsize, world.ysize * 3 / 4, rand() % 200 + 20);
+                    //newCell->color = QColor(185, 120, 90);
                 }
                 // add virus
-                if(rand() % 1000 < ui->virusSpawn->value())
-                    world.addVirus(rand() % world.xsize, rand() % world.ysize, 800);
+                //if(rand() % 1000 < ui->virusSpawn->value())
+                //    world.addVirus(rand() % world.xsize, rand() % world.ysize, 800);
 
                 world.update();
                 tick++;
                 ticksNow++;
 
-                if(!is_fast)
-                    break;
+                nextUpdate = QDateTime::currentMSecsSinceEpoch() + 1000 / targetFps;
             }
             if ((int)QDateTime::currentMSecsSinceEpoch() > lastFpsUpdate + 400) {
                 lastFpsUpdate = QDateTime::currentMSecsSinceEpoch();
 
-                ui->fps->setText("fps: " + QString::number(ticksNow * 60));
-                ui->statistics->setText(
-                    "cells: " + QString::number(world.countCells()) + "\n" +
-                    "joints: " + QString::number(world.countJoints()) + "\n" +
-                    "creatures: " + QString::number(world.countCreatures()));
+                if (!is_fast)
+                    ui->fps->setText("fps: " + QString::number(targetFps));
+                else
+                    ui->fps->setText("fps: " + QString::number(ticksNow * 60));
+                /*ui->statistics->setText(
+                    "cells: " + QString::number(world.physics.countCells()) + "\n" +
+                    "joints: " + QString::number(world.physics.countJoints()) + "\n"); //+
+                    //"creatures: " + QString::number(world.countCreatures()));*/
             }
             ui->txt_ticks->setText(QString::number(tick));
-            this->update();
         }
+        this->update();
     }
 
 public:
@@ -155,6 +170,10 @@ public:
     }
 
     void keyPressEvent(QKeyEvent *event) {
+        if (event->key() == ' ') {
+            world.update();
+            tick++;
+        }
         world.keyPress(event->key());
     }
 

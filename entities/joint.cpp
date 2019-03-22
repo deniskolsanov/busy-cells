@@ -6,31 +6,38 @@ Joint::Joint(Cell *cell1, Cell *cell2, double size, double force) : cell1(cell1)
     angle2 = cell2->angleTo(*cell1);
 }
 
+bool Joint::isAlive() {
+    return cell1 && cell2 && cell1->isAlive() && cell2->isAlive();
+}
+
+void Joint::kill() {
+    cell1 = nullptr;
+    cell2 = nullptr;
+}
 
 void Joint::update() {
     if (!isAlive())
         return;
 
-    size = cell1->getRadius() + cell2->getRadius();
+    double averageMass = (cell1->getMass() + cell2->getMass()) / 2;
+    cell1->addMass((averageMass - cell1->getMass()) / 100);
+    cell2->addMass((averageMass - cell2->getMass()) / 100);
 
-    double averageMass = (cell1->mass + cell2->mass) / 2;
-    cell1->mass += (averageMass - cell1->mass) / 100;
-    cell2->mass += (averageMass - cell2->mass) / 100;
-
-    Vect diff = cell1->pos - cell2->pos;
+    Vect diff = *cell1 - *cell2;
     double k = (size - diff.size()) * force;
 
-    cell1->pos += diff * k;
+    *cell1 += diff * k;
     cell1->speed += diff * k;
 
-    cell2->pos -= diff * k;
+    *cell2 -= diff * k;
     cell2->speed -= diff * k;
 
-    double dangle1 = cell1->normAngle( cell1->angleTo(*cell2) - angle1 );
-    cell1->addAngle(dangle1 * 0.5);
-    cell2->pos.rotateWithCenter(cell1->pos, -dangle1 * 0.1);
+    double kk = 1;
+    double dangle1 = normAngle( cell1->angleTo(*cell2) - angle1 );
+    cell1->addAngle(dangle1 * 0.5 * kk);
+    cell2->rotateWithCenter(*cell1, -dangle1 * 0.1 * kk);
 
-    double dangle2 = cell1->normAngle( cell2->angleTo(*cell1) - angle2 );
-    cell2->addAngle(dangle2 * 0.5);
-    cell1->pos.rotateWithCenter(cell2->pos, -dangle2 * 0.1);
+    double dangle2 = normAngle( cell2->angleTo(*cell1) - angle2 );
+    cell2->addAngle(dangle2 * 0.5 * kk);
+    cell1->rotateWithCenter(*cell2, -dangle2 * 0.1 * kk);
 }

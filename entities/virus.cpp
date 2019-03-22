@@ -16,7 +16,7 @@ void Virus::update() {
     if (!isAlive())
         return;
 
-    for(auto &cell2 : cell->world->cells) {
+    /*for(auto &cell2 : cell->physics.cells) {
         if (!cell2.isAlive())
             continue;
         double dist = cell->pos.distTo(cell2.pos) - cell->getRadius() - cell2.getRadius();
@@ -25,11 +25,11 @@ void Virus::update() {
             cell->mass > cell2.mass &&
             cell2.color != Qt::magenta) {
 
-            if (!cell2.isFood() && cell2.mass > 100) {
+            if (!cell2.type == FOOD && cell2.mass > 100) {
                 double dmass = min(40.0, cell2.mass - 100);
                 cell->mass += dmass / 2;
                 cell2.mass -= dmass;
-            } else if (cell2.isFood()) {
+            } else if (cell2.type == FOOD) {
                 cell->mass += cell2.mass / 2;
                 cell2.kill();
             }
@@ -49,5 +49,5 @@ void Virus::update() {
         auto newVirus = cell->world->addVirus(pos.x, pos.y, cell->mass);
         newVirus->cell->angle = cell->angle + M_PI;
         return;
-    }
+    }*/
 }

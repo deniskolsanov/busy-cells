@@ -8,28 +8,37 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11 warn_off
+CONFIG += c++17 warn_off
+CONFIG += static
 TARGET = busy_cells
 TEMPLATE = app
-QMAKE_CXXFLAGS += -O3
+CONFIG += optimize_full
+QMAKE_LFLAGS += -static -static-libgcc
+QMAKE_LFLAGS_RELEASE += -static -static-libgcc
 
 SOURCES += \
     entities/cell.cpp \
-    entities/creature.cpp \
     entities/joint.cpp \
-    entities/virus.cpp \
     busy_cells.cpp \
     draw.cpp \
-    world.cpp
+    world.cpp \
+    physics.cpp \
+    world2.cpp \
+    nn.cpp \
+    quads.cpp
 
 HEADERS += \
     entities/cell.h \
-    entities/creature.h \
     entities/joint.h \
-    entities/virus.h \
     mainwindow.h \
     vect.h \
-    world.h
+    world.h \
+    test.h \
+    physics.h \
+    world2.h \
+    nn.h \
+    quads.h \
+    hsvtorgb.h
 
 FORMS += \
     mainwindow.ui

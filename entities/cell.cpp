@@ -1,60 +1,87 @@
 
 #include "entities/cell.h"
+#include "physics.h"
 
-vector<double> Cell::generateInput() {
-    vector<double> input(4, 200);
-    for(auto &cell : world->cells) {
-        double dist = cell.pos.distTo(pos) - getRadius() - cell.getRadius();
-        if (cell == *this || dist > 200)
-            continue;
+Cell::Cell(Physics *physics, double x, double y, double radius) :
+    Vect(Vect(x, y)),
+    physics(physics),
+    radius(radius),
+    speed(Vect(0, 0)) {}
 
-        double ang = normAngle(pos.angleTo(cell.pos) - angle);
-        if(abs(ang) > M_PI / 2)
-            continue;
-
-        // [-pi/2, pi/2] -> [0, pi] -> [0, 4]
-        int inputId = (ang + M_PI / 2) * 4 / M_PI;
-        if (dist < abs(input[inputId])) {
-            if (getRadius() > cell.getRadius())
-                input[inputId] = dist;
-            else
-                input[inputId] = -dist;
-        }
+void Cell::collideWalls() {
+    if (x < 0) {
+        speed.x = -speed.x * wallDamping;
+        x = 0;
     }
-    for(int i=0; i < input.size(); i++)
-        input[i] = input[i] / 200;
-    return input;
+    if (x > physics->xsize) {
+        speed.x = -speed.x * wallDamping;
+        x = physics->xsize;
+    }
+    if (y < 0) {
+        speed.y = -speed.y * wallDamping;
+        y = 0;
+    }
+    if (y > physics->ysize) {
+        speed.y = -speed.y * wallDamping;
+        y = physics->ysize;
+    }
 }
 
 void Cell::update() {
     if (!isAlive())
         return;
 
-    if (pos.x < 0) {
-        speed.x = -speed.x * 0.9;
-        pos.x = 0;
-    }
-    if (pos.x > world->xsize) {
-        speed.x = -speed.x * 0.9;
-        pos.x = world->xsize;
-    }
-    if (pos.y < 0) {
-        speed.y = -speed.y * 0.9;
-        pos.y = 0;
-    }
-    if (pos.y > world->ysize) {
-        speed.y = -speed.y * 0.9;
-        pos.y = world->ysize;
-    }
+    if (physics->xsize != 0 && physics->ysize != 0)
+        collideWalls();
 
-    speed *= 0.92;
-    pos += speed;
+    speed *= damping;
+    *this += speed;
+}
+
+bool Cell::isAlive() {
+    return x > -1e8;
 }
 
 void Cell::kill() {
-    pos.x = -1000;
-    for(auto &joint : world->joints) {
+    x = -1e9;
+    /*for(auto &joint : world->joints) {
         if (joint.isAlive() && (*joint.cell1 == *this || *joint.cell2 == *this))
             joint.kill();
-    }
+    }*/
+}
+
+double Cell::getMass() const {
+    return square(radius) * M_PI;
+}
+
+double Cell::toRadius(const double mass) {
+    return sqrt(mass / M_PI);
+}
+
+void Cell::addMass(double mass) {
+    radius = sqrt(square(radius) + mass / M_PI);
+}
+
+void Cell::applyImpulse(const Vect impulse) {
+    *this += impulse;
+    speed += impulse;
+}
+
+void Cell::addAngle(const double dAngle) {
+    angle = normAngle(angle + dAngle);
+}
+
+bool Cell::operator== (const Cell &b) {
+    return *this == b;
+}
+bool Cell::operator!= (const Cell &b) {
+    return *this != b;
+}
+
+double Cell::angleTo(Cell &cell) {
+    return normAngle(angleTo(cell) - angle);
+}
+
+int Cell::hash() {
+    return this->hash();
 }

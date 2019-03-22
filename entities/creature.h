@@ -2,57 +2,58 @@
 #define CREATURE_H
 
 #include "world.h"
+#include <queue>
+#include <map>
 
 class Cell;
+class Joint;
 
 class Creature {
 public:
-    int genCell = 2;
+    // -- Neuro Net architectures:
+    // brain
+    // inputs: 4 from eye, 2 from memory
+    // outputs: 2 for movement, 2 for memory
     vector<int> arch = {6, 10, 10, 10, 6};
+
+    // structure builder
+    // inputs: 4 from cell marks, cell mass
+    // outputs: cell type, cell mark, relative cell angle
+    vector<int> arch2 = {5, 8, 8, 3};
+
+    World *world;
+
     vector<double> gen;
     vector<double> memory;
 
     vector<Cell*> innerCells;
+    vector<Joint*> innerJoints;
 
-    int birthKD = 0;
+    int birthKD = 60;
 
-    Creature(Cell *cell) {
-        int genSize = genCell * 2 + 1;
-        for(int i=1; i < arch.size(); i++)
-            genSize += arch[i-1] * arch[i] + arch[i];
-        for(int i=0; i < genSize; i++)
-            gen.push_back(rand() * 2.0 / RAND_MAX - 1);
-
-        innerCells.push_back(cell);
-        setCellTypeFromState(cell);
-
-        memory = vector<double> (arch[0]);
-    }
-
-    bool isAlive() {
-        return innerCells.size();
-    }
-
-    void regenerateFrom(Creature &creature) {
-        double step = abs(creature.gen.back()) * 0.2;
-        //step = 0.1;
-        for(int i=0; i < creature.gen.size(); i++)
-            gen[i] = min(max(creature.gen[i] + rand() * step / RAND_MAX - step / 2, -1.0), 1.0);
-        setCellTypeFromState(innerCells.front());
-    }
+    Creature(World *world, Cell *cell);
+    bool isAlive();
+    double normMass(double mass);
+    void initFirstCell(Creature &creature);
+    void regenerateFrom(Creature &creature);
 
     int cellTypeFromGen(double a);
-    void setCellTypeFromState(Cell *cell);
+    double cellAngleFromGen(double a);
+    int cellMarkFromGen(double a);
     double getCellAngleFromState(Cell *cell);
 
-    double activation(double x) {
-        return x / sqrt(1 + x * x);
-    }
+    double activation(double x);
 
-    vector<double> runGen(vector<double> &input);
+    int calculateArch(vector<int> &arch);
+    vector<double> runNN(int archN, vector<double> &input);
+    vector<double> generateInputFromCell(Cell &me);
     vector<double> generateInput();
     void update();
+    bool checkCellDie(Cell *cell);
+    bool checkCellDivision(Cell *cell);
     void doEat(Cell *cell);
+
+    vector<double> calculateMarks(Cell *cell);
 };
 
 #endif // CREATURE_H
